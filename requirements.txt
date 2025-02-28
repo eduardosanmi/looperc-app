@@ -2,3 +2,4 @@ streamlit
 qdrant_client
 pandas
 numpy
+soundfile

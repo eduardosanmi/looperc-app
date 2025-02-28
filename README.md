@@ -1,19 +1,9 @@
-# 🎈 Blank app template
+# TLDR
 
-A simple Streamlit app template for you to modify!
+A simple Streamlit perc looper app 
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://blank-app-template.streamlit.app/)
 
-### How to run it on your own machine
+### Where?
 
-1. Install the requirements
+Anywhere! isnt it cool?
 
-   ```
-   $ pip install -r requirements.txt
-   ```
-
-2. Run the app
-
-   ```
-   $ streamlit run streamlit_app.py
-   ```
