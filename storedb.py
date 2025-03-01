@@ -13,7 +13,6 @@ qdrant = QdrantClient(
 def get_samples_by_condition_qdrant(df = None, genres = None,
  selected_bpm = None, selected_genre = None, bpm_range = None, 
  shuffle = True, album = None, token=None, limit=250):
-    
     conditions = []
     if selected_genre:
         conditions.append(FieldCondition(key="genre", match=MatchAny(any=selected_genre)))

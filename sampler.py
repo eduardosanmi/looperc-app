@@ -4,12 +4,11 @@ import pandas as pd
 import numpy as np
 from itertools import product
 import random
-import operator
 import copy
 import io
 import base64
 import soundfile as sf
-
+import gc
 from storedb import get_samples_by_condition_qdrant
 
 standard_song_patterns = st.secrets["STANDAR_SONG_PATTERNS"]
@@ -20,6 +19,10 @@ def generate_audio_html(audio_array):
     sf.write(audio_buffer, audio_array, 44100, format="WAV")
     audio_buffer.seek(0)  
     audio_base64 = base64.b64encode(audio_buffer.read()).decode("utf-8")
+
+    del audio_array
+    gc.collect() 
+    
     audio_html = audio_template.format(audio_base64=audio_base64)
     return audio_html
 
@@ -63,15 +66,19 @@ def gen_audio(bpm = None, genre = None, album = None, n_steps = 5):
                 'files': sampled_element.file.to_list(),
                 'album': list(sampled_element.album.unique())}
     steps_dict.append(step_dict)
-    data_wav = data
 
+    data_wav_tmp = []
     # Warm up
     for step_ix in range(n_steps):
         data, sampled_element, prev_data, step_dict = data_stream_pull(
             sampled_element, loop_struct_dict_array, df_llm, round_val, 
             data = data, prev_data = prev_data, two_prev = two_prev, steps_dict = steps_dict) 
-        
-        data_wav = np.concatenate([data_wav, data])
+        data_wav_tmp.append(data)
+    
+    del df_llm
+    gc.collect()
+    
+    data_wav = np.concatenate(data_wav_tmp)
     return data_wav
 
 
