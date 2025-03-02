@@ -70,6 +70,17 @@ def gen_audio(bpm = None, genre = None, album = None, n_steps = 5):
             sampled_element, loop_struct_dict_array, df_llm, round_val, 
             data = data, prev_data = prev_data, two_prev = two_prev, steps_dict = steps_dict) 
         data_wav_tmp.append(data)
+
+    
+    loop_struct_dict_array_end = get_ending_patterns(loop_struct_dict_array)
+    if len(loop_struct_dict_array_end) == 0:
+        loop_struct_dict_array_end = loop_struct_dict_array
+
+    data, sampled_element, prev_data, step_dict = data_stream_pull(
+        sampled_element, loop_struct_dict_array_end, df_llm, round_val, 
+        data = data, prev_data = prev_data, two_prev = two_prev, 
+        steps_dict = steps_dict, no_ending = False) 
+    data_wav_tmp.append(data)
     
     del df_llm
     gc.collect()
@@ -169,6 +180,12 @@ def gen_struct_dict(sample_time_patterns, llm_res_files, standard_song_patterns 
 def get_intro_patterns(data):
     filtered_data = [[sublist for sublist in inner_list if any(item['token'] == 'intro' for item in sublist)]
                      for inner_list in data if any(sublist for sublist in inner_list if any(item['token'] == 'intro' for item in sublist))]
+
+    return filtered_data
+
+def get_ending_patterns(data):
+    filtered_data = [[sublist for sublist in inner_list if any(item['token'] == 'ending' for item in sublist)]
+                     for inner_list in data if any(sublist for sublist in inner_list if any(item['token'] == 'ending' for item in sublist))]
 
     return filtered_data
 
@@ -283,14 +300,16 @@ def sample_from_dict(loop_struct_dict_array, df_llm, round_val, prev_data = None
     return data, sampled_element, found_pattern
 
 def data_stream_pull(sampled_element, loop_struct_dict_array, df_llm, round_val, 
-                     data = None, prev_data = None, two_prev = True, steps_dict = []):
+                     data = None, prev_data = None, two_prev = True, steps_dict = [],
+                     no_ending = True):
     if prev_data is not None:                        
         prev_data += sampled_element.token.to_list()                        
     else:
         prev_data = sampled_element.token.to_list()
     next_prev_data = sampled_element.token.to_list()
     
-    data, sampled_element, found_pattern = sample_from_dict(loop_struct_dict_array, df_llm, round_val, prev_data, next_prev_data)                    
+    data, sampled_element, found_pattern = sample_from_dict(loop_struct_dict_array, df_llm, round_val, prev_data, 
+                                                            next_prev_data, no_ending = no_ending)                    
     # data = np.concatenate([data, data_new])
 
     if two_prev:                        

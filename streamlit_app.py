@@ -5,7 +5,7 @@ from sampler import gen_audio, genres
 import time, random
 
 st.title("l:blue[OO]perc")
-st.subheader(":grey[Jam :blue[fresh] new tracks...]", divider="gray")
+st.subheader(":grey[Jam :violet[fresh] new tracks...]", divider="gray")
 
 sel_selected_genre = st.selectbox("selection",
                                   genres,
@@ -15,29 +15,28 @@ if sel_selected_genre is None:
     st.warning("Please select an option to continue.")
     st.stop()
 
-avail_albums = query_by_payload(genre = [sel_selected_genre], limit = 1000)
+avail_albums = query_by_payload(genre = [sel_selected_genre], limit = 100)
+
 if avail_albums:
-    sel_selected_album = random.choice(list(avail_albums[0].album.unique()))
-    if sel_selected_album:
-        jam_button = st.button("Jam!", type="primary")
-        if jam_button:
-            with st.spinner("Generating track, this can take a while... ...", show_time=True): 
-                data_wav, sections, durations = gen_audio(
-                    album = sel_selected_album, n_steps = 6)
+    jam_button = st.button(f'''Jam! ({len(avail_albums[0].album.unique())})''', type="primary")
+    if jam_button:
+        sel_selected_album = random.choice(list(avail_albums[0].album.unique())) 
+        with st.spinner("Generating track, this can take a while... ...", show_time=True): 
+            data_wav, sections, durations = gen_audio(
+                album = sel_selected_album, n_steps = 6)
             st.audio(np.array(data_wav).T, sample_rate=44100, loop = False, autoplay = True)
-            with st.empty(): 
-                time.sleep(.2)
-                for i in range(len(sections)):
-                    columns = st.columns((1, 1, 1)) 
-                    with columns[1]:
-                        st.subheader(f''':gray[Playing :green[{sections[i]}] for {round(durations[i],1)} secs ]''')
-                        if i < len(sections)-1:
-                            st.write(f''':gray[Next :green[{sections[i+1]}] for {round(durations[i+1],1)} secs ]''')
-                        time.sleep(durations[i]) 
-        sel_selected_album = None                   
+        with st.empty():            
+            for i in range(len(sections)):
+                columns = st.columns(1) 
+                with columns[0]:
+                    st.subheader(f''':gray[Playing :green[{sections[i].upper()}] for :green[{round(durations[i],1)} secs]]''')
+                    if i < len(sections)-1:
+                        time.sleep(0.101)
+                        st.write(f''':gray[Next :violet[{sections[i+1].upper()}] for :violet[{round(durations[i+1],1)} secs ]]''')
+                    time.sleep(durations[i])     
 else:
-    jam_button = st.button("Jam!", type="secondary", disabled=True)
-    sel_selected_album = None
+    jam_button = st.button("Jam! (0)", type="secondary", disabled=True)
+    
 
 
         
