@@ -27,7 +27,7 @@ with st.empty():
     for i in range(len(sections)):
         columns = st.columns((1, 1, 1)) 
         with columns[1]:
-            st.header(f''':gray[Playing :green[{sections[i]}] for {round(durations[i],1)} secs ]''')
+            st.subheader(f''':gray[Playing :green[{sections[i]}] for {round(durations[i],1)} secs ]''')
             if i < len(sections)-1:
                 st.write(f''':gray[Next :green[{sections[i+1]}] for {round(durations[i+1],1)} secs ]''')
             time.sleep(durations[i])    
