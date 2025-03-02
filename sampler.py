@@ -12,6 +12,7 @@ import gc
 from storedb import get_samples_by_condition_qdrant
 
 standard_song_patterns = st.secrets["STANDAR_SONG_PATTERNS"]
+genres = ["funk","garage", "rock", "country", "blues", "jazz", "latin", "reggae", "brushes", "upbeat", "boggie"]
 
 def generate_audio_html(audio_array):
     audio_template = st.secrets["audio"]["HTML_TEMPLATE"]
@@ -19,10 +20,8 @@ def generate_audio_html(audio_array):
     sf.write(audio_buffer, audio_array, 44100, format="WAV")
     audio_buffer.seek(0)  
     audio_base64 = base64.b64encode(audio_buffer.read()).decode("utf-8")
-
     del audio_array
     gc.collect() 
-    
     audio_html = audio_template.format(audio_base64=audio_base64)
     return audio_html
 
@@ -45,19 +44,17 @@ def gen_audio(bpm = None, genre = None, album = None, n_steps = 5):
         sel_bpm_range, sel_shuffle, sel_selected_album,
         sel_topK, round_val, use_llm = use_llm, 
         model_simple = model_simple, sel_model = sel_model)
-
-    # MAIN LOOP PLAYER
+    
     steps_dict = []
     data = None
     prev_data = None
     two_prev = True
 
-    # find intro patterns
     loop_struct_dict_array_ini = get_intro_patterns(loop_struct_dict_array)
     if len(loop_struct_dict_array_ini) == 0:
         loop_struct_dict_array_ini = loop_struct_dict_array
-
-    # first sample
+    
+    data_wav_tmp = []
     data, sampled_element, found_pattern = sample_from_dict(
         loop_struct_dict_array_ini, df_llm, round_val)
     step_dict = {'found_pattern': found_pattern,
@@ -66,9 +63,8 @@ def gen_audio(bpm = None, genre = None, album = None, n_steps = 5):
                 'files': sampled_element.file.to_list(),
                 'album': list(sampled_element.album.unique())}
     steps_dict.append(step_dict)
-
-    data_wav_tmp = []
-    # Warm up
+    data_wav_tmp.append(data)
+        
     for step_ix in range(n_steps):
         data, sampled_element, prev_data, step_dict = data_stream_pull(
             sampled_element, loop_struct_dict_array, df_llm, round_val, 
@@ -79,7 +75,10 @@ def gen_audio(bpm = None, genre = None, album = None, n_steps = 5):
     gc.collect()
     
     data_wav = np.concatenate(data_wav_tmp)
-    return data_wav
+    sections = [x for i in range(len(steps_dict)) for x in steps_dict[i]['tokens']]
+    durations = [x for i in range(len(steps_dict)) for x in steps_dict[i]['duration']]
+
+    return data_wav, sections, durations 
 
 
 # calc time for a bar given BPM
@@ -102,10 +101,10 @@ def subset_sum(numbers, target, partial=[], partial_sum=0, margin = .1):
         yield from subset_sum(remaining, target, partial + [n], partial_sum + n)
 
 # generate combination of time patterns that sum a given total time        
-def generate_sample_time_patterns(eligible_bricks, total_length, 
+def generate_sample_time_patterns(df_llm, total_length, 
                                   topK = 3, pattern_precision = 2):
-    sorted_available_lengths = eligible_bricks.groupby(
-        eligible_bricks['duration'].round(pattern_precision)).size().sort_values(ascending = False)
+    sorted_available_lengths = df_llm.groupby(
+        df_llm['duration'].round(pattern_precision)).size().sort_values(ascending = False)
 
     lengths = sorted_available_lengths.iloc[0:topK].index.values
     repeats = ((total_length/lengths).round()).astype(int)
@@ -291,8 +290,8 @@ def data_stream_pull(sampled_element, loop_struct_dict_array, df_llm, round_val,
         prev_data = sampled_element.token.to_list()
     next_prev_data = sampled_element.token.to_list()
     
-    data_new, sampled_element, found_pattern = sample_from_dict(loop_struct_dict_array, df_llm, round_val, prev_data, next_prev_data)                    
-    data = np.concatenate([data, data_new])
+    data, sampled_element, found_pattern = sample_from_dict(loop_struct_dict_array, df_llm, round_val, prev_data, next_prev_data)                    
+    # data = np.concatenate([data, data_new])
 
     if two_prev:                        
         prev_data = next_prev_data

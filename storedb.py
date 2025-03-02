@@ -10,6 +10,7 @@ qdrant = QdrantClient(
     api_key=st.secrets["DB_API_KEY"],
 )
 
+
 def get_samples_by_condition_qdrant(df = None, genres = None,
  selected_bpm = None, selected_genre = None, bpm_range = None, 
  shuffle = True, album = None, token=None, limit=250):
